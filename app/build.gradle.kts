@@ -57,19 +57,18 @@ dependencies {
     implementation(libs.androidx.compose.material3)
 
     // --- CameraX ---
-    implementation(libs.androidx.camera.camera2)
-    implementation(libs.androidx.camera.lifecycle)
-    implementation(libs.androidx.camera.view)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
 
     // --- ML Kit Object Detection ---
-// --- ML Kit Object Detection ---
-    implementation(libs.google.mlkit.objectdetection)
+    implementation(libs.mlkit.objectdetection)
 
     // --- Permissions (Accompanist) ---
-    implementation(libs.google.accompanist.permissions)
+    implementation(libs.accompanist.permissions)
 
     // --- Lifecycle ViewModel Compose ---
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.viewmodel.compose)
 
     // --- Tests ---
     testImplementation(libs.junit)
