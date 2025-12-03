@@ -12,33 +12,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
-import kotlin.math.max
 import kotlin.math.min
 
-/**
- * AR Overlay that draws bounding boxes and tick marks on detected products
- * FIXED VERSION with proper coordinate mapping
- */
+
 @Composable
 fun DetectionOverlay(
     detectedProducts: List<DetectedProduct>,
     previewView: PreviewView,
     modifier: Modifier = Modifier
 ) {
-    val density = LocalDensity.current
-
     Canvas(modifier = modifier.fillMaxSize()) {
         if (detectedProducts.isEmpty()) return@Canvas
 
-        // Get preview dimensions
         val viewWidth = size.width
         val viewHeight = size.height
 
         detectedProducts.forEach { product ->
-            // Direct mapping - ML Kit already returns screen coordinates
-            // We just need to ensure they're within bounds
             val rect = Rect(
                 left = product.boundingBox.left.coerceIn(0f, viewWidth),
                 top = product.boundingBox.top.coerceIn(0f, viewHeight),
@@ -46,90 +35,96 @@ fun DetectionOverlay(
                 bottom = product.boundingBox.bottom.coerceIn(0f, viewHeight)
             )
 
-            // Only draw if the box is valid and visible
             if (rect.width > 10f && rect.height > 10f) {
-                // Draw bounding box
-                drawBoundingBox(rect)
+                drawBoundingBoxWithShadow(rect)
 
-                // Draw tick mark
-                drawTickMark(rect)
-
-                // Draw confidence label
-                drawConfidenceLabel(rect, product.confidence)
+                drawProminentTickMark(rect)
             }
         }
     }
 }
 
-/**
- * Draw bounding box around detected product
- */
-private fun DrawScope.drawBoundingBox(rect: Rect) {
+private fun DrawScope.drawBoundingBoxWithShadow(rect: Rect) {
+    drawRect(
+        color = Color.Black.copy(alpha = 0.3f),
+        topLeft = Offset(rect.left + 4f, rect.top + 4f),
+        size = Size(rect.width, rect.height),
+        style = Stroke(width = 8f)
+    )
+
     drawRect(
         color = Color(0xFF00FF00), // Bright green
         topLeft = Offset(rect.left, rect.top),
         size = Size(rect.width, rect.height),
-        style = Stroke(width = 6f)
+        style = Stroke(width = 8f)
+    )
+
+    // Inner lighter green border
+    drawRect(
+        color = Color(0xFF80FF80).copy(alpha = 0.5f),
+        topLeft = Offset(rect.left + 4f, rect.top + 4f),
+        size = Size(rect.width - 8f, rect.height - 8f),
+        style = Stroke(width = 4f)
     )
 }
 
-/**
- * Draw green tick mark indicating detected product
- */
-private fun DrawScope.drawTickMark(rect: Rect) {
-    // Calculate tick size based on bounding box size
-    val tickSize = min(rect.width, rect.height) * 0.4f
+
+private fun DrawScope.drawProminentTickMark(rect: Rect) {
     val centerX = rect.left + rect.width / 2
     val centerY = rect.top + rect.height / 2
 
-    // Circle radius
+    val baseSize = min(rect.width, rect.height) * 0.35f
+    val tickSize = baseSize.coerceAtLeast(60f) // Minimum 60px
     val circleRadius = tickSize / 1.5f
 
-    // Draw circle background
+    drawCircle(
+        color = Color.Black.copy(alpha = 0.3f),
+        radius = circleRadius,
+        center = Offset(centerX + 3f, centerY + 3f)
+    )
+
     drawCircle(
         color = Color(0xFF00FF00), // Bright green
         radius = circleRadius,
         center = Offset(centerX, centerY)
     )
 
-    // Draw white tick/check mark
+    drawCircle(
+        color = Color.White.copy(alpha = 0.3f),
+        radius = circleRadius * 0.8f,
+        center = Offset(centerX, centerY)
+    )
+
     val tickPath = Path().apply {
-        val tickScale = tickSize / 2
+        val scale = tickSize / 2.5f
 
-        // Start point (left of tick)
-        moveTo(centerX - tickScale * 0.5f, centerY)
+        moveTo(centerX - scale * 0.6f, centerY - scale * 0.1f)
 
-        // Middle point (bottom of tick)
-        lineTo(centerX - tickScale * 0.15f, centerY + tickScale * 0.5f)
+        lineTo(centerX - scale * 0.2f, centerY + scale * 0.6f)
 
-        // End point (top right of tick)
-        lineTo(centerX + tickScale * 0.6f, centerY - tickScale * 0.5f)
+        lineTo(centerX + scale * 0.7f, centerY - scale * 0.7f)
     }
+
+    val tickPathShadow = Path().apply {
+        val scale = tickSize / 2.5f
+        moveTo(centerX - scale * 0.6f + 2f, centerY - scale * 0.1f + 2f)
+        lineTo(centerX - scale * 0.2f + 2f, centerY + scale * 0.6f + 2f)
+        lineTo(centerX + scale * 0.7f + 2f, centerY - scale * 0.7f + 2f)
+    }
+
+    drawPath(
+        path = tickPathShadow,
+        color = Color.Black.copy(alpha = 0.3f),
+        style = Stroke(width = 12f)
+    )
 
     drawPath(
         path = tickPath,
         color = Color.White,
-        style = Stroke(width = 8f)
+        style = Stroke(
+            width = 10f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+            join = androidx.compose.ui.graphics.StrokeJoin.Round
+        )
     )
-}
-
-/**
- * Draw confidence score label
- */
-private fun DrawScope.drawConfidenceLabel(rect: Rect, confidence: Float) {
-    val confidenceText = "${(confidence * 100).toInt()}%"
-
-    // Draw background rectangle for text
-    val labelHeight = 40f
-    val labelWidth = 80f
-    val labelTop = max(0f, rect.top - labelHeight - 5f)
-
-    drawRect(
-        color = Color(0xFF00FF00).copy(alpha = 0.9f),
-        topLeft = Offset(rect.left, labelTop),
-        size = Size(labelWidth, labelHeight)
-    )
-
-    // Note: For actual text rendering, you would use drawText with TextPainter
-    // This is simplified for the demo
 }
